@@ -1,0 +1,204 @@
+{
+  "routes": [
+    {
+      "path": "/",
+      "title": "TechLand Pathways | TechLand"
+    },
+    {
+      "path": "/scholarships/",
+      "title": "Scholarship Opportunities | TechLand"
+    },
+    {
+      "path": "/scholarships/demo-scholarship/",
+      "title": "Demo Scholarship — Graduate Study | TechLand"
+    },
+    {
+      "path": "/scholarships/demo-scholarship-research/",
+      "title": "Demo Scholarship — Research Track | TechLand"
+    },
+    {
+      "path": "/scholarships/demo-scholarship-undergraduate/",
+      "title": "Demo Scholarship — Undergraduate Pathway | TechLand"
+    },
+    {
+      "path": "/humanitarian/",
+      "title": "Humanitarian Pathways | TechLand"
+    },
+    {
+      "path": "/humanitarian/demo-humanitarian-program/",
+      "title": "Demo Humanitarian Program — General Information | TechLand"
+    },
+    {
+      "path": "/humanitarian/demo-humanitarian-community/",
+      "title": "Demo Humanitarian Program — Community Support | TechLand"
+    },
+    {
+      "path": "/visa/",
+      "title": "Visa Information | TechLand"
+    },
+    {
+      "path": "/eligibility/",
+      "title": "Quick Match Preview | TechLand"
+    },
+    {
+      "path": "/guides/",
+      "title": "Guides and Resources | TechLand"
+    },
+    {
+      "path": "/guides/avoid-scholarship-scams/",
+      "title": "How to Check a Scholarship Offer Before You Apply | TechLand"
+    },
+    {
+      "path": "/guides/verify-official-sources/",
+      "title": "A Simple Routine for Verifying Official Sources | TechLand"
+    },
+    {
+      "path": "/guides/prepare-application-documents/",
+      "title": "Preparing an Application Document Checklist | TechLand"
+    },
+    {
+      "path": "/guides/scholarship-application-planning/",
+      "title": "Planning a Scholarship Search | TechLand"
+    },
+    {
+      "path": "/guides/study-abroad-planning/",
+      "title": "A Practical Study-Abroad Planning Checklist | TechLand"
+    },
+    {
+      "path": "/guides/visa-information-basics/",
+      "title": "Finding Current Visa Information | TechLand"
+    },
+    {
+      "path": "/guides/humanitarian-information-basics/",
+      "title": "How to Research Humanitarian Pathway Information | TechLand"
+    },
+    {
+      "path": "/guides/language-test-preparation/",
+      "title": "Planning for a Language Test | TechLand"
+    },
+    {
+      "path": "/scam-alert/",
+      "title": "Scam Alert: Check Before You Pay or Share | TechLand"
+    },
+    {
+      "path": "/compare/",
+      "title": "Compare Saved Opportunities | TechLand"
+    },
+    {
+      "path": "/services/",
+      "title": "TechLand Services | TechLand"
+    },
+    {
+      "path": "/contact/",
+      "title": "Contact | TechLand"
+    },
+    {
+      "path": "/admin/",
+      "title": "Admin Panel | TechLand"
+    },
+    {
+      "path": "/payment/",
+      "title": "Payment & Subscription | TechLand"
+    },
+    {
+      "path": "/fa/",
+      "title": "مسیرهای تک‌لند | تک‌لند"
+    },
+    {
+      "path": "/fa/scholarships/",
+      "title": "فرصت‌های بورسیه | تک‌لند"
+    },
+    {
+      "path": "/fa/scholarships/demo-scholarship/",
+      "title": "بورسیهٔ نمونه — تحصیلات کارشناسی ارشد | تک‌لند"
+    },
+    {
+      "path": "/fa/scholarships/demo-scholarship-research/",
+      "title": "بورسیهٔ نمونه — مسیر پژوهش | تک‌لند"
+    },
+    {
+      "path": "/fa/scholarships/demo-scholarship-undergraduate/",
+      "title": "بورسیهٔ نمونه — مسیر کارشناسی | تک‌لند"
+    },
+    {
+      "path": "/fa/humanitarian/",
+      "title": "مسیرهای بشردوستانه | تک‌لند"
+    },
+    {
+      "path": "/fa/humanitarian/demo-humanitarian-program/",
+      "title": "برنامهٔ بشردوستانهٔ نمونه — اطلاعات عمومی | تک‌لند"
+    },
+    {
+      "path": "/fa/humanitarian/demo-humanitarian-community/",
+      "title": "برنامهٔ بشردوستانهٔ نمونه — پشتیبانی اجتماعی | تک‌لند"
+    },
+    {
+      "path": "/fa/visa/",
+      "title": "اطلاعات ویزا | تک‌لند"
+    },
+    {
+      "path": "/fa/eligibility/",
+      "title": "پیش‌نمایش تطبیق سریع | تک‌لند"
+    },
+    {
+      "path": "/fa/guides/",
+      "title": "راهنماها و منابع | تک‌لند"
+    },
+    {
+      "path": "/fa/guides/avoid-scholarship-scams/",
+      "title": "چگونه پیش از درخواست، پیشنهاد بورسیه را بررسی کنیم | تک‌لند"
+    },
+    {
+      "path": "/fa/guides/verify-official-sources/",
+      "title": "روش ساده برای بررسی منابع رسمی | تک‌لند"
+    },
+    {
+      "path": "/fa/guides/prepare-application-documents/",
+      "title": "آماده‌سازی فهرست اسناد درخواست | تک‌لند"
+    },
+    {
+      "path": "/fa/guides/scholarship-application-planning/",
+      "title": "برنامه‌ریزی برای جستجوی بورسیه | تک‌لند"
+    },
+    {
+      "path": "/fa/guides/study-abroad-planning/",
+      "title": "فهرست کاربردی برنامه‌ریزی تحصیل در خارج | تک‌لند"
+    },
+    {
+      "path": "/fa/guides/visa-information-basics/",
+      "title": "یافتن اطلاعات تازهٔ ویزا | تک‌لند"
+    },
+    {
+      "path": "/fa/guides/humanitarian-information-basics/",
+      "title": "چگونه اطلاعات مسیرهای بشردوستانه را بررسی کنیم | تک‌لند"
+    },
+    {
+      "path": "/fa/guides/language-test-preparation/",
+      "title": "برنامه‌ریزی برای آزمون زبان | تک‌لند"
+    },
+    {
+      "path": "/fa/scam-alert/",
+      "title": "هشدار کلاهبرداری: پیش از پرداخت یا شریک‌سازی بررسی کنید | تک‌لند"
+    },
+    {
+      "path": "/fa/compare/",
+      "title": "مقایسهٔ فرصت‌های ذخیره‌شده | تک‌لند"
+    },
+    {
+      "path": "/fa/services/",
+      "title": "خدمات تک‌لند | تک‌لند"
+    },
+    {
+      "path": "/fa/contact/",
+      "title": "تماس | تک‌لند"
+    },
+    {
+      "path": "/fa/admin/",
+      "title": "پنل مدیریت | تک‌لند"
+    },
+    {
+      "path": "/fa/payment/",
+      "title": "پرداخت و اشتراک | تک‌لند"
+    }
+  ]
+}
