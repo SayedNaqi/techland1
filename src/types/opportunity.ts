@@ -63,6 +63,6 @@ export interface RouteInfo {
     | 'humanitarian-detail' | 'visa' | 'eligibility' | 'guides'
     | 'guide-detail' | 'scam-alert' | 'compare' | 'services'
     | 'contact' | 'admin' | 'payment' | 'movies' | 'series'
-    | 'video-detail' | 'not-found';
+    | 'video-detail' | 'games' | 'not-found';
   slug?: string;
 }

@@ -109,6 +109,10 @@
       "title": "TV Series | TechLand"
     },
     {
+      "path": "/games/",
+      "title": "Games | TechLand"
+    },
+    {
       "path": "/fa/",
       "title": "مسیرهای تک‌لند | تک‌لند"
     },
@@ -215,6 +219,10 @@
     {
       "path": "/fa/series/",
       "title": "سریال‌ها | تک‌لند"
+    },
+    {
+      "path": "/fa/games/",
+      "title": "بازی‌ها | تک‌لند"
     }
   ]
 }

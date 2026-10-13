@@ -29,6 +29,7 @@ import {
 } from '@/lib/accounts';
 import {
   apiAdminAds,
+  apiAdminGames,
   apiAdminLogin,
   apiAdminPlans,
   apiAdminStats,
@@ -37,35 +38,42 @@ import {
   apiAdminVideos,
   apiChangeAdminCreds,
   apiCreateAd,
+  apiCreateGame,
   apiCreatePlan,
   apiCreateVideo,
   apiDeleteAd,
+  apiDeleteGame,
   apiDeletePlan,
   apiDeleteUser,
   apiDeleteVideo,
   apiSetSubscription,
   apiSetTxStatus,
   apiUpdateAd,
+  apiUpdateGame,
   apiUpdatePlan,
   apiUpdateVideo,
+  apiUploadImage,
   apiUploadVideoFile,
   getAdminToken,
   isBackendEnabled,
+  mediaUrl,
   setAdminToken,
   type AdInput,
   type AdminStats,
   type ApiAd,
+  type ApiGame,
   type ApiPlan,
   type ApiTx,
   type ApiUser,
   type ApiVideo,
+  type GameInput,
   type PlanInput,
   type VideoInput,
 } from '@/lib/api';
 import { detectSource, MOCK_VIDEO_FALLBACK, normalizeEmbedUrl } from '@/lib/videos';
 import type { GuideRecord, OpportunityRecord, VisaTopic } from '@/types/opportunity';
 
-type SectionKey = 'dashboard' | 'opportunities' | 'guides' | 'visa' | 'videos' | 'users' | 'payments' | 'plans' | 'ads' | 'settings';
+type SectionKey = 'dashboard' | 'opportunities' | 'guides' | 'visa' | 'videos' | 'games' | 'users' | 'payments' | 'plans' | 'ads' | 'settings';
 
 const emptyOpp = (slug: string): OpportunityRecord => ({
   id: `custom-${Date.now()}`,
@@ -251,6 +259,7 @@ function AdminApp({ language, onLogout }: { language: 'en' | 'fa'; onLogout: () 
   const [serverUsers, setServerUsers] = useState<ApiUser[]>([]);
   const [serverTxs, setServerTxs] = useState<ApiTx[]>([]);
   const [videoCount, setVideoCount] = useState(0);
+  const [gameCount, setGameCount] = useState(0);
   const [serverError, setServerError] = useState<string | null>(null);
 
   const refreshServer = async () => {
@@ -293,6 +302,20 @@ function AdminApp({ language, onLogout }: { language: 'en' | 'fa'; onLogout: () 
     } catch { /* keep old count */ }
   };
 
+  const refreshGameCount = async () => {
+    const token = getAdminToken();
+    if (!backend || !token) return;
+    try {
+      const g = await apiAdminGames(token);
+      setGameCount(g.games.length);
+    } catch { /* keep old count */ }
+  };
+
+  const refreshCatalogCounts = () => {
+    void refreshVideoCount();
+    void refreshGameCount();
+  };
+
   const transactions = backend ? serverTxs.map((t) => ({ ...t, amountUSD: t.amountUSD })) : demoTransactions;
   const users = backend ? serverUsers : demoUsers;
   const plans = usePlans();
@@ -309,6 +332,7 @@ function AdminApp({ language, onLogout }: { language: 'en' | 'fa'; onLogout: () 
     { key: 'guides', labelEn: 'Guides', labelFa: 'راهنماها', count: guides.items.length },
     { key: 'visa', labelEn: 'Visa topics', labelFa: 'موضوعات ویزا', count: visa.items.length },
     { key: 'videos', labelEn: 'Videos', labelFa: 'ویدیوها', count: videoCount },
+    { key: 'games', labelEn: 'Games', labelFa: 'بازی‌ها', count: gameCount },
     { key: 'users', labelEn: 'Users', labelFa: 'کاربران', count: users.length },
     { key: 'payments', labelEn: 'Payments', labelFa: 'پرداخت‌ها', count: transactions.length },
     { key: 'plans', labelEn: 'Plans', labelFa: 'پلن‌ها', count: plans.length },
@@ -354,6 +378,7 @@ function AdminApp({ language, onLogout }: { language: 'en' | 'fa'; onLogout: () 
         {section === 'guides' && <GuidesView store={guides} />}
         {section === 'visa' && <VisaView store={visa} />}
         {section === 'videos' && <VideosView onChanged={() => void refreshVideoCount()} />}
+        {section === 'games' && <GamesView onChanged={() => void refreshCatalogCounts()} />}
         {section === 'users' && backend && (
           <BackendUsersView users={serverUsers} onChanged={() => setUserVersion((v) => v + 1)} />
         )}
@@ -1696,6 +1721,335 @@ function VideosView({ onChanged }: { onChanged: () => void }) {
             <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <input type="checkbox" checked={form.trending} onChange={(e) => set('trending', e.target.checked)} />
               {language === 'fa' ? 'پربازدید' : 'Trending'}
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input type="checkbox" checked={form.active} onChange={(e) => set('active', e.target.checked)} />
+              {language === 'fa' ? 'فعال (نمایش در سایت)' : 'Active (visible on site)'}
+            </label>
+          </div>
+          {error && <p style={{ color: '#b3261e', fontSize: 12, margin: 0 }}>{error}</p>}
+        </div>
+      </FormModal>
+    </div>
+  );
+}
+
+/* ------------- Games (store catalog with uploaded posters) ------------- */
+
+function GamesView({ onChanged }: { onChanged: () => void }) {
+  const { language } = useLanguage();
+  const backend = isBackendEnabled;
+  const [list, setList] = useState<ApiGame[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingSlug, setEditingSlug] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [form, setForm] = useState({
+    slug: '', titleEn: '', titleFa: '', descEn: '', descFa: '',
+    thumbnail: '', screenshotsCsv: '', genreCsv: '', platformCsv: '',
+    price: '', currency: 'USD', access: 'paid', rating: '',
+    releaseYear: '', developer: '', publisher: '', size: '',
+    featured: false, isNew: true, active: true,
+  });
+
+  const set = (k: keyof typeof form, v: string | boolean) =>
+    setForm((f) => ({ ...f, [k]: v }));
+
+  const refresh = async () => {
+    const t = getAdminToken();
+    if (!t) return;
+    const r = await apiAdminGames(t);
+    setList(r.games);
+    onChanged();
+  };
+
+  useEffect(() => {
+    if (backend) void refresh().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backend]);
+
+  const thumbSrc = form.thumbnail.trim() ? mediaUrl(form.thumbnail.trim()) : '';
+
+  const onFileChosen = async (f: File | undefined) => {
+    if (!f) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const r = await apiUploadImage(f);
+      setForm((prev) => ({ ...prev, thumbnail: r.url }));
+    } catch (e) {
+      setError(isUnauthorized(e)
+        ? (language === 'fa' ? 'نشست ادمین منقضی شده — خارج شوید و دوباره وارد شوید.' : 'Admin session expired — sign out and sign in again.')
+        : (e instanceof Error ? e.message : 'upload_failed'));
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  const openAdd = () => {
+    setEditingSlug(null);
+    setForm({
+      slug: '', titleEn: '', titleFa: '', descEn: '', descFa: '',
+      thumbnail: '', screenshotsCsv: '', genreCsv: '', platformCsv: '',
+      price: '', currency: 'USD', access: 'paid', rating: '',
+      releaseYear: '', developer: '', publisher: '', size: '',
+      featured: false, isNew: true, active: true,
+    });
+    setError(null);
+    setModalOpen(true);
+  };
+
+  const openEdit = (g: ApiGame) => {
+    setEditingSlug(g.slug);
+    setForm({
+      slug: g.slug, titleEn: g.title.en, titleFa: g.title.fa,
+      descEn: g.description.en, descFa: g.description.fa,
+      thumbnail: g.thumbnailUrl ?? '', screenshotsCsv: (g.screenshots || []).join(', '),
+      genreCsv: g.genre.join(', '), platformCsv: g.platform.join(', '),
+      price: g.price != null ? String(g.price) : '', currency: g.currency || 'USD',
+      access: g.accessType, rating: g.rating != null ? String(g.rating) : '',
+      releaseYear: g.releaseYear != null ? String(g.releaseYear) : '',
+      developer: g.developer ?? '', publisher: g.publisher ?? '', size: g.size ?? '',
+      featured: !!g.isFeatured, isNew: !!g.isNew, active: g.isActive !== false,
+    });
+    setError(null);
+    setModalOpen(true);
+  };
+
+  const save = async () => {
+    const t = getAdminToken();
+    if (!t) return;
+    setBusy(true);
+    setError(null);
+    try {
+      if (!form.titleEn.trim()) {
+        setError(language === 'fa' ? 'نام انگلیسی لازم است.' : 'English title is required.');
+        setBusy(false);
+        return;
+      }
+      if (!form.thumbnail.trim()) {
+        setError(language === 'fa' ? 'پوستر لازم است — عکس آپلود کنید یا لینک بگذارید.' : 'A poster is required — upload an image or paste a link.');
+        setBusy(false);
+        return;
+      }
+      const num = (s: string) => (s.trim() === '' ? null : Number(s));
+      const payload: GameInput = {
+        titleEn: form.titleEn.trim(),
+        titleFa: form.titleFa.trim(),
+        descriptionEn: form.descEn.trim(),
+        descriptionFa: form.descFa.trim(),
+        thumbnailUrl: form.thumbnail.trim(),
+        screenshots: form.screenshotsCsv.split(',').map((s) => s.trim()).filter(Boolean),
+        genre: form.genreCsv.split(',').map((s) => s.trim()).filter(Boolean),
+        platform: form.platformCsv.split(',').map((s) => s.trim()).filter(Boolean),
+        price: num(form.price),
+        currency: form.currency.trim() || 'USD',
+        accessType: form.access as 'free' | 'paid' | 'vip',
+        rating: num(form.rating),
+        releaseYear: form.releaseYear.trim() === '' ? null : Math.trunc(Number(form.releaseYear)),
+        developer: form.developer.trim(),
+        publisher: form.publisher.trim(),
+        size: form.size.trim(),
+        isFeatured: form.featured,
+        isNew: form.isNew,
+        isActive: form.active,
+      };
+      if (editingSlug) {
+        await apiUpdateGame(t, editingSlug, payload);
+      } else {
+        const slug = (form.slug.trim() || form.titleEn.trim())
+          .toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
+        if (!slug) {
+          setError(language === 'fa' ? 'شناسه (slug) لازم است.' : 'A slug is required.');
+          setBusy(false);
+          return;
+        }
+        await apiCreateGame(t, { ...payload, slug });
+      }
+      setModalOpen(false);
+      await refresh();
+    } catch (e) {
+      setError(isUnauthorized(e)
+        ? (language === 'fa' ? 'نشست ادمین منقضی شده — خارج شوید و دوباره وارد شوید.' : 'Admin session expired — sign out and sign in again.')
+        : (e instanceof Error ? e.message : 'save_failed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async (slug: string) => {
+    const t = getAdminToken();
+    if (!t) return;
+    await apiDeleteGame(t, slug);
+    await refresh().catch(() => {});
+  };
+
+  return (
+    <div>
+      <div className="pathway-section__head">
+        <div>
+          <p className="pathway-eyebrow">{language === 'fa' ? 'بازی‌ها' : 'Games'}</p>
+          <h2 style={{ margin: 0 }}>{language === 'fa' ? 'مدیریت بازی‌ها' : 'Manage games'}</h2>
+          <p>
+            {backend
+              ? language === 'fa'
+                ? 'پوستر را آپلود کنید و بازی جدید اضافه کنید — بلافاصله با نشان «جدید» در صفحه بازی‌ها دیده می‌شود.'
+                : 'Upload a poster and add a new game — it instantly appears on the Games page with a NEW badge.'
+              : language === 'fa'
+                ? 'حالت نمایشی: فقط نمونه‌ها نمایش داده می‌شود. برای افزودن بازی واقعی، VITE_API_URL را وصل کنید.'
+                : 'Demo mode: samples only. Connect VITE_API_URL to add real games.'}
+          </p>
+          <p className="directory-local-note">
+            {language === 'fa'
+              ? 'فقط بازی‌هایی را اضافه کنید که حق انتشار آن را دارید.'
+              : 'Only add games you have the right to list.'}
+          </p>
+        </div>
+        {backend && (
+          <button type="button" className="pathway-button" onClick={openAdd}>
+            {language === 'fa' ? '＋ بازی' : '＋ Game'}
+          </button>
+        )}
+      </div>
+
+      <div className="compare-table-wrap">
+        <table className="compare-table">
+          <thead><tr><th>{language === 'fa' ? 'بازی' : 'Game'}</th><th>{language === 'fa' ? 'پلتفرم / قیمت' : 'Platforms / price'}</th><th>{language === 'fa' ? 'دسترسی' : 'Access'}</th>{backend && <th>{language === 'fa' ? 'عملیات' : 'Actions'}</th>}</tr></thead>
+          <tbody>
+            {list.map((g) => (
+              <tr key={g.slug}>
+                <td>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    {g.thumbnailUrl && <img src={mediaUrl(g.thumbnailUrl)} alt="" style={{ width: 64, height: 40, objectFit: 'cover', borderRadius: 6 }} />}
+                    <div>
+                      <strong>{language === 'fa' ? (g.title.fa || g.title.en) : g.title.en}</strong>
+                      <br /><span style={{ fontSize: 11, color: '#9aa6b7' }}>{g.slug}{g.isActive === false ? (language === 'fa' ? ' · غیرفعال' : ' · inactive') : ''}</span>
+                      <br />
+                      {g.isNew && <span style={{ display: 'inline-block', fontSize: 10, fontWeight: 800, background: '#e8f5e9', color: '#1c7a3d', borderRadius: 6, padding: '1px 7px', marginTop: 3 }}>{language === 'fa' ? 'جدید' : 'NEW'}</span>}
+                      {g.isFeatured && <span style={{ display: 'inline-block', fontSize: 10, fontWeight: 800, background: '#e9effe', color: '#2859a8', borderRadius: 6, padding: '1px 7px', marginTop: 3, marginInlineStart: 4 }}>{language === 'fa' ? 'ویژه' : 'FEATURED'}</span>}
+                    </div>
+                  </div>
+                </td>
+                <td style={{ fontSize: 11 }}>
+                  {(g.platform || []).slice(0, 3).join(', ') || '—'}
+                  <br /><span style={{ color: '#65718a' }}>{g.price != null ? `$${Number(g.price).toFixed(2)}` : (g.accessType === 'free' ? (language === 'fa' ? 'رایگان' : 'Free') : g.accessType.toUpperCase())}</span>
+                </td>
+                <td style={{ fontSize: 11 }}>{g.accessType === 'free' ? (language === 'fa' ? 'رایگان' : 'Free') : g.accessType === 'vip' ? 'VIP' : (language === 'fa' ? 'پولی' : 'Paid')}</td>
+                {backend && (
+                  <td>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button type="button" className="opp-link" style={{ background: 'none', border: 0 }} onClick={() => openEdit(g)}>{language === 'fa' ? 'ویرایش' : 'Edit'}</button>
+                      <button type="button" className="opp-link" style={{ background: 'none', border: 0 }} onClick={() => void remove(g.slug)}>{language === 'fa' ? 'حذف' : 'Delete'}</button>
+                    </div>
+                  </td>
+                )}
+              </tr>
+            ))}
+            {list.length === 0 && (
+              <tr><td colSpan={backend ? 4 : 3}>{language === 'fa' ? 'هنوز بازی اضافه نشده است.' : 'No games yet.'}</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <FormModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editingSlug ? (language === 'fa' ? 'ویرایش بازی' : 'Edit game') : (language === 'fa' ? 'بازی جدید' : 'New game')}
+        subtitle={language === 'fa' ? 'پوستر آپلود کنید — بازی جدید با نشان «جدید» منتشر می‌شود' : 'Upload a poster — new games publish with a NEW badge'}
+        onSubmit={() => void save()}
+        submitLabel={language === 'fa' ? 'ذخیره' : 'Save'}
+        loading={busy}
+        size="lg"
+      >
+        <div style={{ display: 'grid', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <FormField label={language === 'fa' ? 'نام (انگلیسی)' : 'Title (EN)'} required>
+              <FormInput value={form.titleEn} onChange={(e) => set('titleEn', e.target.value)} dir="ltr" />
+            </FormField>
+            <FormField label={language === 'fa' ? 'نام (فارسی)' : 'Title (FA)'}>
+              <FormInput value={form.titleFa} onChange={(e) => set('titleFa', e.target.value)} dir="rtl" />
+            </FormField>
+          </div>
+          {!editingSlug && (
+            <FormField label="Slug (unique, latin)" hint={language === 'fa' ? 'خالی = ساخته‌شده از نام انگلیسی' : 'Empty = generated from English title'}>
+              <FormInput value={form.slug} onChange={(e) => set('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-'))} dir="ltr" />
+            </FormField>
+          )}
+          <FormField
+            label={language === 'fa' ? 'پوستر (آپلود یا URL)' : 'Poster (upload or URL)'}
+            hint={language === 'fa' ? 'JPG/PNG/WebP تا ۸ مگابایت — روی سرور تک‌لند ذخیره می‌شود' : 'JPG/PNG/WebP up to 8 MB — stored on the TechLand server'}
+          >
+            <div style={{ display: 'flex', gap: 8 }}>
+              <FormInput value={form.thumbnail} onChange={(e) => set('thumbnail', e.target.value)} dir="ltr" placeholder="https://… or /media/…" />
+              <button
+                type="button"
+                className="pathway-button pathway-button--secondary"
+                style={{ minHeight: 36, whiteSpace: 'nowrap' }}
+                disabled={uploading}
+                onClick={() => fileRef.current?.click()}
+              >
+                {uploading ? (language === 'fa' ? '…' : '…') : language === 'fa' ? 'آپلود پوستر' : 'Upload poster'}
+              </button>
+            </div>
+          </FormField>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif,image/avif,.jpg,.jpeg,.png,.webp,.gif,.avif"
+            style={{ display: 'none' }}
+            onChange={(e) => void onFileChosen(e.target.files?.[0])}
+          />
+          {thumbSrc !== '' && (
+            <img src={thumbSrc} alt="" style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 10, border: '1px solid #dfe6ef' }} onError={(e) => { (e.target as HTMLImageElement).style.outline = '2px solid #b3261e'; }} />
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <FormField label={language === 'fa' ? 'دسترسی' : 'Access'}>
+              <FormSelect value={form.access} onChange={(e) => set('access', e.target.value)}>
+                <option value="free">{language === 'fa' ? 'رایگان' : 'Free'}</option>
+                <option value="paid">{language === 'fa' ? 'پولی' : 'Paid'}</option>
+                <option value="vip">VIP</option>
+              </FormSelect>
+            </FormField>
+            <FormField label={language === 'fa' ? 'قیمت' : 'Price'}>
+              <FormInput value={form.price} onChange={(e) => set('price', e.target.value)} dir="ltr" inputMode="decimal" placeholder="12.00" />
+            </FormField>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <FormField label={language === 'fa' ? 'پلتفرم (با ویرگول)' : 'Platforms (comma separated)'}>
+              <FormInput value={form.platformCsv} onChange={(e) => set('platformCsv', e.target.value)} dir="ltr" placeholder="PC, PlayStation, Android" />
+            </FormField>
+            <FormField label={language === 'fa' ? 'ژانر (با ویرگول)' : 'Genre (comma separated)'}>
+              <FormInput value={form.genreCsv} onChange={(e) => set('genreCsv', e.target.value)} dir="ltr" placeholder="Action, RPG" />
+            </FormField>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+            <FormField label={language === 'fa' ? 'سال انتشار' : 'Release year'}><FormInput value={form.releaseYear} onChange={(e) => set('releaseYear', e.target.value)} dir="ltr" inputMode="numeric" placeholder="2024" /></FormField>
+            <FormField label={language === 'fa' ? 'امتیاز (۰ـ۱۰)' : 'Rating (0-10)'}><FormInput value={form.rating} onChange={(e) => set('rating', e.target.value)} dir="ltr" inputMode="decimal" /></FormField>
+            <FormField label={language === 'fa' ? 'حجم' : 'Size'}><FormInput value={form.size} onChange={(e) => set('size', e.target.value)} dir="ltr" placeholder="70 GB" /></FormField>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <FormField label={language === 'fa' ? 'سازنده' : 'Developer'}><FormInput value={form.developer} onChange={(e) => set('developer', e.target.value)} /></FormField>
+            <FormField label={language === 'fa' ? 'ناشر' : 'Publisher'}><FormInput value={form.publisher} onChange={(e) => set('publisher', e.target.value)} /></FormField>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <FormField label={language === 'fa' ? 'ارز' : 'Currency'}><FormInput value={form.currency} onChange={(e) => set('currency', e.target.value)} dir="ltr" placeholder="USD" /></FormField>
+            <FormField label={language === 'fa' ? 'اسکرین‌شات‌ها (URL با ویرگول)' : 'Screenshots (comma separated URLs)'}><FormInput value={form.screenshotsCsv} onChange={(e) => set('screenshotsCsv', e.target.value)} dir="ltr" placeholder="https://…" /></FormField>
+          </div>
+          <FormField label={language === 'fa' ? 'توضیح (انگلیسی)' : 'Description (EN)'}><FormInput value={form.descEn} onChange={(e) => set('descEn', e.target.value)} /></FormField>
+          <FormField label={language === 'fa' ? 'توضیح (فارسی)' : 'Description (FA)'}><FormInput value={form.descFa} onChange={(e) => set('descFa', e.target.value)} dir="rtl" /></FormField>
+
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, color: '#35445d' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input type="checkbox" checked={form.isNew} onChange={(e) => set('isNew', e.target.checked)} />
+              {language === 'fa' ? 'جدید (نشان NEW)' : 'New (NEW badge)'}
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input type="checkbox" checked={form.featured} onChange={(e) => set('featured', e.target.checked)} />
+              {language === 'fa' ? 'ویژه' : 'Featured'}
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <input type="checkbox" checked={form.active} onChange={(e) => set('active', e.target.checked)} />

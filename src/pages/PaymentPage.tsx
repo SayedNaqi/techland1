@@ -205,7 +205,7 @@ export default function PaymentPage() {
               <h2>{language === 'fa' ? '۳ — پرداخت با حساب‌پی' : '3 — Pay with HesabPay'}</h2>
               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
                 {qrMissing ? (
-                  <div style={{ width: 210, minHeight: 210, border: '2px dashed #b3261e', borderRadius: 16, background: '#fff5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 14, textAlign: 'center', fontSize: 12, color: '#7a1f1a' }}>
+                  <div style={{ width: 210, maxWidth: '100%', minHeight: 210, border: '2px dashed #b3261e', borderRadius: 16, background: '#fff5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 14, textAlign: 'center', fontSize: 12, color: '#7a1f1a' }}>
                     {language === 'fa'
                       ? 'QR حساب‌پی هنوز تنظیم نشده است. مدیر باید از پنل ادمین → تنظیمات، تصویر QR را آپلود کند.'
                       : 'HesabPay QR is not configured yet. The admin must upload the QR image via Admin → Settings.'}
@@ -214,7 +214,7 @@ export default function PaymentPage() {
                   <img
                     src={qrSrc}
                     alt="HesabPay QR"
-                    style={{ width: 210, height: 210, objectFit: 'contain', border: '1px solid #dfe6ef', borderRadius: 16, background: '#fff' }}
+                    style={{ width: 210, maxWidth: '100%', height: 'auto', aspectRatio: '1 / 1', objectFit: 'contain', border: '1px solid #dfe6ef', borderRadius: 16, background: '#fff' }}
                     onError={() => setQrMissing(true)}
                   />
                 )}
@@ -260,7 +260,7 @@ export default function PaymentPage() {
 
             <div>
               <h3 style={{ color: '#07114f', marginTop: 0 }}>{language === 'fa' ? 'پرداخت‌های من' : 'My payments'}</h3>
-              <div className="compare-table-wrap">
+              <div className="compare-table-wrap my-payments-table">
                 <table className="compare-table">
                   <thead><tr><th>{language === 'fa' ? 'پلن' : 'Plan'}</th><th>{language === 'fa' ? 'مرجع' : 'Reference'}</th><th>{language === 'fa' ? 'مبلغ' : 'Amount'}</th><th>{language === 'fa' ? 'وضعیت' : 'Status'}</th></tr></thead>
                   <tbody>

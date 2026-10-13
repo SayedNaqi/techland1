@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { listPlans } from '../plans.js';
+import { gameRowToApi } from '../games.js';
 import { videoRowToApi } from '../videos.js';
 
 const router = Router();
@@ -93,6 +94,24 @@ router.get('/videos/:slug', async (req, res, next) => {
     const { rows } = await query('SELECT * FROM videos WHERE slug=$1 AND is_active = TRUE', [req.params.slug.toLowerCase()]);
     if (rows.length === 0) return res.status(404).json({ error: 'not_found' });
     res.json({ video: videoRowToApi(rows[0]) });
+  } catch (err) { next(err); }
+});
+
+// Games catalog (only active items; new/featured first so customers spot them).
+router.get('/games', async (_req, res, next) => {
+  try {
+    const { rows } = await query(
+      'SELECT * FROM games WHERE is_active = TRUE ORDER BY is_new DESC, is_featured DESC, sort_order, updated_at DESC LIMIT 200',
+    );
+    res.json({ games: rows.map(gameRowToApi) });
+  } catch (err) { next(err); }
+});
+
+router.get('/games/:slug', async (req, res, next) => {
+  try {
+    const { rows } = await query('SELECT * FROM games WHERE slug=$1 AND is_active = TRUE', [req.params.slug.toLowerCase()]);
+    if (rows.length === 0) return res.status(404).json({ error: 'not_found' });
+    res.json({ game: gameRowToApi(rows[0]) });
   } catch (err) { next(err); }
 });
 

@@ -117,7 +117,7 @@ export interface ApiVideoPart {
   label: { en: string; fa: string };
   embedUrl: string;
   directUrl?: string;
-  source: 'ok' | 'vk' | 'custom';
+  source: 'ok' | 'vk' | 'bunny' | 'custom';
 }
 export interface ApiVideo {
   id: string;
@@ -174,6 +174,62 @@ export const apiUpdateVideo = (token: string, slug: string, payload: VideoInput)
 export const apiDeleteVideo = (token: string, slug: string) =>
   apiFetch<{ ok: boolean }>(`/api/admin/videos/${slug}`, { method: 'DELETE', token });
 
+// ---------- Games (store catalog with uploaded posters) ----------
+export interface ApiGame {
+  id: string;
+  slug: string;
+  title: { en: string; fa: string };
+  description: { en: string; fa: string };
+  thumbnailUrl?: string;
+  screenshots: string[];
+  genre: string[];
+  platform: string[];
+  price?: number;
+  currency: string;
+  accessType: 'free' | 'paid' | 'vip';
+  rating?: number;
+  releaseYear?: number;
+  developer?: string;
+  publisher?: string;
+  size?: string;
+  isFeatured?: boolean;
+  isNew?: boolean;
+  isActive?: boolean;
+}
+export interface GameInput {
+  slug?: string;
+  titleEn?: string;
+  titleFa?: string;
+  descriptionEn?: string;
+  descriptionFa?: string;
+  thumbnailUrl?: string;
+  screenshots?: string[];
+  genre?: string[];
+  platform?: string[];
+  price?: number | null;
+  currency?: string;
+  accessType?: 'free' | 'paid' | 'vip';
+  rating?: number | null;
+  releaseYear?: number | null;
+  developer?: string;
+  publisher?: string;
+  size?: string;
+  isFeatured?: boolean;
+  isNew?: boolean;
+  isActive?: boolean;
+  sortOrder?: number;
+}
+export const apiPublicGames = () =>
+  apiFetch<{ games: ApiGame[] }>('/api/public/games');
+export const apiAdminGames = (token: string) =>
+  apiFetch<{ games: ApiGame[] }>('/api/admin/games', { token });
+export const apiCreateGame = (token: string, payload: GameInput & { slug: string }) =>
+  apiFetch<{ game: ApiGame }>('/api/admin/games', { method: 'POST', token, body: payload });
+export const apiUpdateGame = (token: string, slug: string, payload: GameInput) =>
+  apiFetch<{ game: ApiGame }>(`/api/admin/games/${slug}`, { method: 'PUT', token, body: payload });
+export const apiDeleteGame = (token: string, slug: string) =>
+  apiFetch<{ ok: boolean }>(`/api/admin/games/${slug}`, { method: 'DELETE', token });
+
 // ---------- Ads (banners on Movies / Series / Watch) ----------
 export type AdSlotName = 'movies_hero' | 'series_hero' | 'watch_top' | 'watch_bottom';
 export interface ApiAd {
@@ -212,6 +268,22 @@ export async function apiUploadVideoFile(file: File): Promise<{ url: string; siz
   const fd = new FormData();
   fd.append('file', file);
   const res = await fetch(`${API_BASE}/api/admin/upload/video-file`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: fd,
+  });
+  const data = (await res.json().catch(() => ({}))) as { url?: string; size?: number | null; error?: string };
+  if (!res.ok || !data.url) throw new Error(data.error || `upload_failed_${res.status}`);
+  return { url: data.url, size: data.size ?? null };
+}
+
+/** Upload a game poster / screenshot (JPG/PNG/WebP/GIF/AVIF, max 8 MB) — returns its public /media/... URL. */
+export async function apiUploadImage(file: File): Promise<{ url: string; size: number | null }> {
+  const token = getAdminToken();
+  if (!isBackendEnabled || !token) throw new Error('backend_not_configured');
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await fetch(`${API_BASE}/api/admin/upload/image`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
     body: fd,

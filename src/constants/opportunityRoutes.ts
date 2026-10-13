@@ -29,6 +29,7 @@ export const PUBLIC_BASE_ROUTES = [
   '/payment/',
   '/movies/',
   '/series/',
+  '/games/',
 ] as const;
 
 export function localizedPath(path: string, language: Language): string {
@@ -86,6 +87,7 @@ export function resolveRoute(pathname: string): RouteInfo {
   if (basePath === '/payment/') return { language, basePath, page: 'payment' };
   if (basePath === '/movies/') return { language, basePath, page: 'movies' };
   if (basePath === '/series/') return { language, basePath, page: 'series' };
+  if (basePath === '/games/') return { language, basePath, page: 'games' };
   if (basePath.startsWith('/watch/')) {
     const slug = basePath.split('/').filter(Boolean)[1];
     if (slug) return { language, basePath, page: 'video-detail', slug };

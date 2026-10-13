@@ -285,6 +285,11 @@
 .compare-table thead th { background: #f1f5fa; color: var(--path-navy); font-size: 12px; }
 .compare-table tbody th { color: #35445d; font-weight: 750; }
 .compare-table a { display: inline-flex; align-items: center; gap: 6px; color: var(--path-blue); }
+/* My-payments table on small phones: roomier than the 700px admin tables. */
+@media (max-width: 680px) {
+  .my-payments-table .compare-table { min-width: 540px; }
+  .my-payments-table .compare-table th, .my-payments-table .compare-table td { min-width: 0; padding: 9px 10px; }
+}
 
 /* Contact route and footer */
 .pathway-contact-intro { padding-block: 45px 20px; text-align: center; }
@@ -328,7 +333,7 @@
   .platform-header__cta { display: none; }
   .platform-menu-toggle { display: inline-flex; }
   .platform-nav { position: absolute; inset-inline: 12px; inset-block-start: calc(100% + 8px); display: none; overflow: hidden; border: 1px solid #dbe4f1; border-radius: 20px; padding: 12px; background: linear-gradient(180deg, #ffffff, #f1f6fc); box-shadow: 0 26px 55px rgba(13,35,76,.18); }
-  .platform-nav.is-open { display: block; animation: platform-nav-panel-in .28s cubic-bezier(.2,.7,.25,1) both; }
+  .platform-nav.is-open { display: block; animation: platform-nav-panel-in .28s cubic-bezier(.2,.7,.25,1) both; max-height: calc(100dvh - 96px); overflow-y: auto; overscroll-behavior: contain; }
   .platform-nav__links { display: grid; gap: 4px; max-width: none; margin-inline: 0; }
   .platform-nav__link { gap: 12px; min-height: 56px; border: 1px solid transparent; border-radius: 15px; padding: 8px 12px; font-size: 13px; font-weight: 700; }
   .platform-nav__link:hover { border-color: #e2e9f4; background: #fff; }

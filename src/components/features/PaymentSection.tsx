@@ -14,7 +14,7 @@ export default function PaymentSection({ selectedPlanId, onSelect, compact, plan
   const list = plans ?? PAYMENT_PLANS;
 
   return (
-    <div className="opp-grid" style={compact ? undefined : { gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))' }}>
+    <div className="opp-grid" style={compact ? undefined : { gridTemplateColumns: 'repeat(auto-fit, minmax(min(230px, 100%), 1fr))' }}>
       {list.map((plan) => {
         const name = plan.name[language];
         const features = plan.features[language];

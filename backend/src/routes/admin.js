@@ -4,6 +4,7 @@ import { query } from '../db.js';
 import { publicUserRow, requireAdmin } from '../auth.js';
 import { listPlans, planRowToApi, toCents } from '../plans.js';
 import { normalizeDirectUrl, normalizeEmbedUrl, videoRowToApi } from '../videos.js';
+import { gameRowToApi, normalizeImageUrl } from '../games.js';
 
 const router = Router();
 router.use(requireAdmin);
@@ -388,6 +389,150 @@ router.delete('/videos/:slug', async (req, res, next) => {
     const { rowCount } = await query('DELETE FROM videos WHERE slug = $1', [req.params.slug.toLowerCase()]);
     if (rowCount === 0) return res.status(404).json({ error: 'not_found' });
     await audit(req.admin.sub, 'delete-video', 'video', req.params.slug);
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+// ---------- Games (Admin → Games: store catalog with uploaded posters) ----------
+const GameBody = z.object({
+  titleEn: z.string().trim().min(1).max(160).optional(),
+  titleFa: z.string().trim().max(160).optional(),
+  descriptionEn: z.string().max(5000).optional(),
+  descriptionFa: z.string().max(5000).optional(),
+  thumbnailUrl: z.string().trim().max(2000).optional(),
+  screenshots: z.array(z.string().trim().max(2000)).max(20).optional(),
+  genre: z.array(z.string().trim().max(40)).max(10).optional(),
+  platform: z.array(z.string().trim().max(40)).max(10).optional(),
+  price: z.number().min(0).max(100000).nullable().optional(),
+  currency: z.string().trim().max(10).optional(),
+  accessType: z.enum(['free', 'paid', 'vip']).optional(),
+  rating: z.number().min(0).max(10).nullable().optional(),
+  releaseYear: z.number().int().min(1970).max(2100).nullable().optional(),
+  developer: z.string().trim().max(120).optional(),
+  publisher: z.string().trim().max(120).optional(),
+  size: z.string().trim().max(40).optional(),
+  isFeatured: z.boolean().optional(),
+  isNew: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+  sortOrder: z.number().int().min(0).max(100000).optional(),
+});
+
+function toGameImages(b) {
+  // Thumbnail is required on create; screenshots are optional.
+  const thumb = normalizeImageUrl(b.thumbnailUrl || '');
+  if (thumb === null) throw new Error('invalid_thumbnail_url');
+  const shots = [];
+  for (const s of b.screenshots ?? []) {
+    if (!s.trim()) continue;
+    const n = normalizeImageUrl(s);
+    if (n === null) throw new Error('invalid_screenshot_url');
+    if (n) shots.push(n);
+  }
+  return { thumb, shots };
+}
+
+router.get('/games', async (req, res, next) => {
+  try {
+    const { rows } = await query('SELECT * FROM games ORDER BY sort_order, updated_at DESC LIMIT 500');
+    res.json({ games: rows.map(gameRowToApi) });
+  } catch (err) { next(err); }
+});
+
+router.post('/games', async (req, res, next) => {
+  try {
+    const idParsed = z.object({ slug: z.string().trim().toLowerCase().regex(/^[a-z0-9-]{3,120}$/) }).safeParse(req.body);
+    if (!idParsed.success) return res.status(400).json({ error: 'invalid_slug' });
+    const parsed = GameBody.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: 'invalid_input', details: parsed.error.flatten() });
+    const b = parsed.data;
+    if (!b.titleEn) return res.status(400).json({ error: 'title_required' });
+    let thumb = '';
+    let shots = [];
+    try {
+      ({ thumb, shots } = toGameImages(b));
+    } catch (e) {
+      return res.status(400).json({ error: e instanceof Error ? e.message : 'invalid_input' });
+    }
+    if (!thumb) return res.status(400).json({ error: 'thumbnail_required' });
+    const { rows } = await query(
+      `INSERT INTO games (slug, title_en, title_fa, description_en, description_fa,
+        thumbnail_url, screenshots, genre, platform, price, currency, access_type,
+        rating, release_year, developer, publisher, size,
+        is_featured, is_new, is_active, sort_order)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+       ON CONFLICT (slug) DO NOTHING RETURNING *`,
+      [idParsed.data.slug, b.titleEn, b.titleFa ?? '', b.descriptionEn ?? '',
+        b.descriptionFa ?? '', thumb, shots, b.genre ?? [], b.platform ?? [],
+        b.price ?? null, b.currency ?? 'USD', b.accessType ?? 'paid',
+        b.rating ?? null, b.releaseYear ?? null, b.developer ?? '', b.publisher ?? '',
+        b.size ?? '', b.isFeatured ?? false, b.isNew ?? false, b.isActive ?? true,
+        b.sortOrder ?? 0],
+    );
+    if (rows.length === 0) return res.status(409).json({ error: 'slug_exists' });
+    await audit(req.admin.sub, 'create-game', 'game', idParsed.data.slug);
+    res.status(201).json({ game: gameRowToApi(rows[0]) });
+  } catch (err) { next(err); }
+});
+
+router.put('/games/:slug', async (req, res, next) => {
+  try {
+    const parsed = GameBody.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: 'invalid_input', details: parsed.error.flatten() });
+    const b = parsed.data;
+    const sets = [];
+    const params = [req.params.slug.toLowerCase()];
+    const push = (col, val, cast = '') => { params.push(val); sets.push(`${col} = $${params.length}${cast}`); };
+    if (b.titleEn !== undefined) push('title_en', b.titleEn);
+    if (b.titleFa !== undefined) push('title_fa', b.titleFa);
+    if (b.descriptionEn !== undefined) push('description_en', b.descriptionEn);
+    if (b.descriptionFa !== undefined) push('description_fa', b.descriptionFa);
+    if (b.thumbnailUrl !== undefined || b.screenshots !== undefined) {
+      let thumb;
+      let shots;
+      try {
+        ({ thumb, shots } = toGameImages({
+          thumbnailUrl: b.thumbnailUrl ?? '',
+          screenshots: b.screenshots ?? [],
+        }));
+      } catch (e) {
+        return res.status(400).json({ error: e instanceof Error ? e.message : 'invalid_input' });
+      }
+      if (b.thumbnailUrl !== undefined) {
+        if (!thumb) return res.status(400).json({ error: 'thumbnail_required' });
+        push('thumbnail_url', thumb);
+      }
+      if (b.screenshots !== undefined) push('screenshots', shots);
+    }
+    if (b.genre !== undefined) push('genre', b.genre);
+    if (b.platform !== undefined) push('platform', b.platform);
+    if (b.price !== undefined) push('price', b.price);
+    if (b.currency !== undefined) push('currency', b.currency);
+    if (b.accessType !== undefined) push('access_type', b.accessType);
+    if (b.rating !== undefined) push('rating', b.rating);
+    if (b.releaseYear !== undefined) push('release_year', b.releaseYear);
+    if (b.developer !== undefined) push('developer', b.developer);
+    if (b.publisher !== undefined) push('publisher', b.publisher);
+    if (b.size !== undefined) push('size', b.size);
+    if (b.isFeatured !== undefined) push('is_featured', b.isFeatured);
+    if (b.isNew !== undefined) push('is_new', b.isNew);
+    if (b.isActive !== undefined) push('is_active', b.isActive);
+    if (b.sortOrder !== undefined) push('sort_order', b.sortOrder);
+    if (sets.length === 0) return res.status(400).json({ error: 'nothing_to_change' });
+    const { rows } = await query(
+      `UPDATE games SET ${sets.join(', ')}, updated_at = now() WHERE slug = $1 RETURNING *`,
+      params,
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'not_found' });
+    await audit(req.admin.sub, 'update-game', 'game', req.params.slug);
+    res.json({ game: gameRowToApi(rows[0]) });
+  } catch (err) { next(err); }
+});
+
+router.delete('/games/:slug', async (req, res, next) => {
+  try {
+    const { rowCount } = await query('DELETE FROM games WHERE slug = $1', [req.params.slug.toLowerCase()]);
+    if (rowCount === 0) return res.status(404).json({ error: 'not_found' });
+    await audit(req.admin.sub, 'delete-game', 'game', req.params.slug);
     res.json({ ok: true });
   } catch (err) { next(err); }
 });

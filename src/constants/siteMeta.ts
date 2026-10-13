@@ -32,6 +32,7 @@ export function getSiteMetadata(pathname: string, language: Language): SiteMetad
     movies: { title: `${language === 'fa' ? 'فیلم‌ها' : 'Movies'} | ${suffix}`, description: language === 'fa' ? 'تماشای فیلم‌ها با پخش‌کن تک‌لند.' : 'Watch movies with the TechLand player.', keywords: 'TechLand movies, watch films online' },
     series: { title: `${language === 'fa' ? 'سریال‌ها' : 'TV Series'} | ${suffix}`, description: language === 'fa' ? 'تماشای سریال‌ها با پخش‌کن تک‌لند.' : 'Watch series with the TechLand player.', keywords: 'TechLand series, watch shows online' },
     'video-detail': { title: `${language === 'fa' ? 'تماشا' : 'Watch'} | ${suffix}`, description: language === 'fa' ? 'تماشای ویدیو با پخش‌کن تک‌لند.' : 'Watch video with the TechLand player.', keywords: 'TechLand watch, online player' },
+    games: { title: `${language === 'fa' ? 'بازی‌ها' : 'Games'} | ${suffix}`, description: language === 'fa' ? 'فروشگاه بازی تک‌لند؛ موارد جدید با نشان «جدید».' : 'TechLand game store; new arrivals marked NEW.', keywords: 'TechLand games, game store' },
     'not-found': { title: `${copy.common.notFound} | ${suffix}`, description: copy.common.notFound, keywords: 'TechLand' },
   };
   return metadata[route.page];
