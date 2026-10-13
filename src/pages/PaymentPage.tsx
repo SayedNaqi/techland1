@@ -7,7 +7,9 @@ import {
   PAYMENT_PLANS,
   listTransactions,
   recordHesabPayPayment,
+  usePlans,
   type PaymentPlan,
+  type PaymentTransaction,
 } from '@/lib/payments';
 import { useSiteSettings } from '@/lib/adminStore';
 import {
@@ -18,21 +20,57 @@ import {
   setUserSubscription,
   type UserProfile,
 } from '@/lib/accounts';
+import {
+  apiLogin,
+  apiMe,
+  apiMyPayments,
+  apiRegister,
+  apiSubmitHesabPay,
+  getUserToken,
+  isBackendEnabled,
+  setUserToken,
+  type ApiTx,
+  type ApiUser,
+} from '@/lib/api';
 
 export default function PaymentPage() {
   const { language } = useLanguage();
+  const plans = usePlans();
   const [plan, setPlan] = useState<PaymentPlan>(PAYMENT_PLANS[1]);
   const [user, setUser] = useState<UserProfile | null>(() => currentUser());
+  const [serverUser, setServerUser] = useState<ApiUser | null>(null);
   const [reference, setReference] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [doneTx, setDoneTx] = useState<string | null>(null);
   const [historyVersion, setHistoryVersion] = useState(0);
+  const [serverHistory, setServerHistory] = useState<ApiTx[]>([]);
   const { settings } = useSiteSettings();
+  const backend = isBackendEnabled;
 
   const history = useMemo(() => listTransactions(), [historyVersion]);
   void historyVersion;
-  const myHistory = user ? history.filter((t) => t.userId === user.id) : [];
+  const demoMine = user ? history.filter((t) => t.userId === user.id) : [];
+  const myHistory: Array<PaymentTransaction | ApiTx> = backend ? serverHistory : demoMine;
+  const activeUser: { name: string; email: string; subscriptionPlanId?: string; subscriptionStatus?: string } | null =
+    backend ? serverUser : user;
+
+  useEffect(() => {
+    // Keep the selection valid when admin-managed plans load (or change).
+    if (!plans.some((p) => p.id === plan.id)) {
+      setPlan(plans.find((p) => p.isPopular) ?? plans[0] ?? PAYMENT_PLANS[1]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plans]);
+
+  useEffect(() => {
+    if (!backend) return;
+    const token = getUserToken();
+    if (!token) return;
+    apiMe(token).then((r) => setServerUser(r.user)).catch(() => setUserToken(null));
+    apiMyPayments(token).then((r) => setServerHistory(r.transactions)).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backend, historyVersion]);
 
   const qrSrc = settings.hesabpayQrImage || '/assets/hesabpay-qr.png';
   const [qrMissing, setQrMissing] = useState(false);
@@ -40,7 +78,7 @@ export default function PaymentPage() {
 
   const submitPayment = () => {
     setError(null);
-    if (!user) {
+    if (!activeUser) {
       setError(language === 'fa' ? 'اول پروفایل بسازید یا وارد شوید.' : 'Create a profile or sign in first.');
       return;
     }
@@ -49,6 +87,29 @@ export default function PaymentPage() {
       return;
     }
     setBusy(true);
+    if (backend) {
+      // Secure path: payment + subscription state live in PostgreSQL.
+      const token = getUserToken();
+      if (!token) {
+        setError(language === 'fa' ? 'توکن منقضی شده؛ دوباره وارد شوید.' : 'Session expired; sign in again.');
+        setBusy(false);
+        return;
+      }
+      apiSubmitHesabPay(token, plan.id, reference.trim())
+        .then((r) => {
+          setDoneTx(r.transaction.id);
+          setReference('');
+          setHistoryVersion((v) => v + 1);
+        })
+        .catch(() => setError(language === 'fa' ? 'خطای سرور؛ docker compose را بررسی کنید.' : 'Server error; check docker compose.'))
+        .finally(() => setBusy(false));
+      return;
+    }
+    if (!user) {
+      setError(language === 'fa' ? 'اول پروفایل بسازید یا وارد شوید.' : 'Create a profile or sign in first.');
+      setBusy(false);
+      return;
+    }
     try {
       const tx = recordHesabPayPayment({
         planId: plan.id,
@@ -90,26 +151,43 @@ export default function PaymentPage() {
               <h2 style={{ margin: 0 }}>{language === 'fa' ? 'پروفایل شما' : 'Your profile'}</h2>
             </div>
           </div>
-          {user ? (
+          {activeUser ? (
             <div className="directory-filters" style={{ marginBottom: 22 }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <strong style={{ color: '#07114f' }}>{user.name}</strong>
-                  <span style={{ fontSize: 12, color: '#65718a' }}> · {user.email}</span>
+                  <strong style={{ color: '#07114f' }}>{activeUser.name}</strong>
+                  <span style={{ fontSize: 12, color: '#65718a' }}> · {activeUser.email}</span>
                   <p style={{ margin: '4px 0 0', fontSize: 12, color: '#52617a' }}>
                     {language === 'fa' ? 'عضویت: ' : 'Membership: '}
-                    <strong>{user.subscriptionPlanId ?? (language === 'fa' ? 'ندارد' : 'none')}</strong>
+                    <strong>{activeUser.subscriptionPlanId ?? (language === 'fa' ? 'ندارد' : 'none')}</strong>
                     {' · '}
-                    {user.subscriptionStatus ?? (language === 'fa' ? '—' : '—')}
+                    {activeUser.subscriptionStatus ?? (language === 'fa' ? '—' : '—')}
+                    {backend && <span style={{ color: '#267f79' }}> · PostgreSQL</span>}
                   </p>
                 </div>
-                <button type="button" className="pathway-button pathway-button--secondary" style={{ minHeight: 38 }} onClick={() => { logoutUser(); setUser(null); }}>
+                <button
+                  type="button"
+                  className="pathway-button pathway-button--secondary"
+                  style={{ minHeight: 38 }}
+                  onClick={() => {
+                    logoutUser();
+                    setUserToken(null);
+                    setUser(null);
+                    setServerUser(null);
+                  }}
+                >
                   {language === 'fa' ? 'خروج' : 'Sign out'}
                 </button>
               </div>
             </div>
           ) : (
-            <ProfileForms onAuth={(u) => setUser(u)} />
+            <ProfileForms
+              onAuth={(u) => setUser(u)}
+              onServerAuth={(u) => {
+                setServerUser(u);
+                setHistoryVersion((v) => v + 1);
+              }}
+            />
           )}
 
           {/* Step 2 — plan */}
@@ -119,7 +197,7 @@ export default function PaymentPage() {
               <h2 style={{ margin: 0 }}>{language === 'fa' ? 'پلن‌های اشتراک' : 'Subscription plans'}</h2>
             </div>
           </div>
-          <PaymentSection selectedPlanId={plan.id} onSelect={setPlan} />
+          <PaymentSection selectedPlanId={plan.id} onSelect={setPlan} plans={plans} />
 
           {/* Step 3 — HesabPay QR */}
           <div className="pathway-split" style={{ marginTop: 28, alignItems: 'start' }}>
@@ -170,10 +248,10 @@ export default function PaymentPage() {
                     : `✓ Your payment was recorded (${doneTx}) and is pending admin approval.`}
                 </p>
               )}
-              <button type="button" className="pathway-button" onClick={submitPayment} disabled={busy || !user}>
+              <button type="button" className="pathway-button" onClick={submitPayment} disabled={busy || !activeUser}>
                 {busy ? (language === 'fa' ? 'در حال ثبت…' : 'Submitting…') : language === 'fa' ? 'ثبت پرداخت' : 'Submit payment'}
               </button>
-              {!user && (
+              {!activeUser && (
                 <p className="pathway-fineprint">
                   {language === 'fa' ? 'برای ثبت پرداخت اول وارد پروفایل شوید.' : 'Sign in to your profile before submitting a payment.'}
                 </p>
@@ -189,13 +267,13 @@ export default function PaymentPage() {
                     {myHistory.map((t) => (
                       <tr key={t.id}>
                         <td>{t.planId}</td>
-                        <td><code style={{ fontSize: 11 }}>{t.reference}</code></td>
-                        <td>${t.amountUSD.toFixed(2)}</td>
+                        <td><code style={{ fontSize: 11 }}>{'reference' in t ? (t.reference ?? '—') : '—'}</code></td>
+                        <td>${('amountUSD' in t ? t.amountUSD : 0).toFixed(2)}</td>
                         <td>{t.status}</td>
                       </tr>
                     ))}
                     {myHistory.length === 0 && (
-                      <tr><td colSpan={4}>{user ? (language === 'fa' ? 'هنوز پرداختی ثبت نکرده‌اید.' : 'You have no payments yet.') : (language === 'fa' ? 'وارد شوید تا تاریخچه را ببینید.' : 'Sign in to see your history.')}</td></tr>
+                      <tr><td colSpan={4}>{activeUser ? (language === 'fa' ? 'هنوز پرداختی ثبت نکرده‌اید.' : 'You have no payments yet.') : (language === 'fa' ? 'وارد شوید تا تاریخچه را ببینید.' : 'Sign in to see your history.')}</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -215,16 +293,38 @@ export default function PaymentPage() {
 
 /* ---------- Profile register / login ---------- */
 
-function ProfileForms({ onAuth }: { onAuth: (u: UserProfile) => void }) {
+function ProfileForms({ onAuth, onServerAuth }: { onAuth: (u: UserProfile) => void; onServerAuth?: (u: ApiUser) => void }) {
   const { language } = useLanguage();
   const [mode, setMode] = useState<'register' | 'login'>('register');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const submit = () => {
+  const submit = async () => {
     setError(null);
+    // Secure path: bcrypt + JWT on the server; password never persisted in the browser.
+    if (isBackendEnabled) {
+      setBusy(true);
+      try {
+        const res = mode === 'register' ? await apiRegister(name, email, password) : await apiLogin(email, password);
+        setUserToken(res.token);
+        onServerAuth?.(res.user);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : '';
+        setError(
+          msg === 'exists'
+            ? language === 'fa' ? 'این ایمیل قبلاً ثبت شده است؛ وارد شوید.' : 'This email is already registered; sign in instead.'
+            : msg === 'invalid_credentials'
+              ? language === 'fa' ? 'ایمیل یا رمز عبور اشتباه است.' : 'Wrong email or password.'
+              : language === 'fa' ? 'خطای سرور؛ docker compose را بررسی کنید.' : 'Server error; check docker compose.',
+        );
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
     if (mode === 'register') {
       const res = registerUser(name, email, password);
       if (!res.ok) {
@@ -279,9 +379,16 @@ function ProfileForms({ onAuth }: { onAuth: (u: UserProfile) => void }) {
         </label>
       </div>
       {error && <p style={{ color: '#b3261e', fontSize: 12, margin: 0 }}>{error}</p>}
-      <button type="button" className="pathway-button" onClick={submit}>
-        {mode === 'register' ? (language === 'fa' ? 'ساخت پروفایل' : 'Create profile') : (language === 'fa' ? 'ورود' : 'Sign in')}
+      <button type="button" className="pathway-button" onClick={() => void submit()} disabled={busy}>
+        {busy
+          ? language === 'fa' ? 'در حال انجام…' : 'Working…'
+          : mode === 'register' ? (language === 'fa' ? 'ساخت پروفایل' : 'Create profile') : (language === 'fa' ? 'ورود' : 'Sign in')}
       </button>
+      {isBackendEnabled && (
+        <p className="pathway-fineprint">
+          {language === 'fa' ? 'حالت امن: پروفایل در PostgreSQL با رمزنگاری bcrypt.' : 'Secure mode: profile in PostgreSQL with bcrypt hashing.'}
+        </p>
+      )}
     </div>
   );
 }

@@ -220,7 +220,7 @@ export default function Watch() {
           src={embedUrl}
           className="absolute inset-0 w-full h-full"
           allowFullScreen
-          allow="autoplay; fullscreen"
+          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
           frameBorder="0"
           title={displayTitle}
           onError={() => setIframeError(true)}

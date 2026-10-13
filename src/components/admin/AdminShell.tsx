@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useLanguage } from '@/hooks/useLanguage';
 import { localizedPath } from '@/constants/opportunityRoutes';
 import { Link } from 'react-router-dom';
+import { isBackendEnabled } from '@/lib/api';
 
 export interface AdminNavItem {
   key: string;
@@ -36,9 +37,13 @@ export default function AdminShell({ titleEn, titleFa, descEn, descFa, nav, acti
           <div className="pathway-demo-callout" role="note">
             <span aria-hidden="true">●</span>
             <span>
-              {language === 'fa'
-                ? 'تغییرات در همین مرورگر ذخیره می‌شود (پیش‌نمایش بدون سرور). هیچ دادهٔ حساسی وارد نکنید.'
-                : 'Changes are stored in this browser only (serverless preview). Do not enter sensitive data.'}
+              {isBackendEnabled
+                ? language === 'fa'
+                  ? 'متصل به بک‌اند امن (PostgreSQL): کاربران، پرداخت‌ها، پلن‌ها و آمار واقعی روی سرور ذخیره می‌شود.'
+                  : 'Connected to the secure backend (PostgreSQL): users, payments, plans and stats live on the server.'
+                : language === 'fa'
+                  ? 'تغییرات در همین مرورگر ذخیره می‌شود (پیش‌نمایش بدون سرور). هیچ دادهٔ حساسی وارد نکنید.'
+                  : 'Changes are stored in this browser only (serverless preview). Do not enter sensitive data.'}
             </span>
           </div>
           <p style={{ marginTop: 12 }}>

@@ -25,6 +25,8 @@ dist-ssr
 
 # Local environment/credential files
 .env*
+!.env.example
+!backend/.env.example
 
 # TypeScript build metadata
 *.tsbuildinfo

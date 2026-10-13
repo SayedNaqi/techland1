@@ -13,6 +13,8 @@ import ContactPage from '@/pages/ContactPage';
 import VisaPage from '@/pages/VisaPage';
 import AdminPage from '@/pages/AdminPage';
 import PaymentPage from '@/pages/PaymentPage';
+import VideosPage from '@/pages/VideosPage';
+import VideoDetailPage from '@/pages/VideoDetailPage';
 import { useLanguage } from '@/hooks/useLanguage';
 import { platformCopy } from '@/constants/platformCopy';
 import { localizedPath } from '@/constants/opportunityRoutes';
@@ -40,6 +42,9 @@ export default function PageView({ route }: { route: RouteInfo }) {
     case 'contact': return <ContactPage />;
     case 'admin': return <AdminPage />;
     case 'payment': return <PaymentPage />;
+    case 'movies': return <VideosPage kind="movie" />;
+    case 'series': return <VideosPage kind="series" />;
+    case 'video-detail': return <VideoDetailPage slug={route.slug ?? ''} />;
     default: {
       const copy = platformCopy[language];
       return <div className="pathway-container pathway-not-found"><p className="pathway-eyebrow">404</p><h1>{copy.common.notFound}</h1><Link className="pathway-button" to={localizedPath('/', language)}>{copy.common.goHome}</Link></div>;

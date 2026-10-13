@@ -1,4 +1,6 @@
 import type { Language } from '@/types';
+import { useEffect, useState } from 'react';
+import { API_BASE, isBackendEnabled, type ApiPlan } from './api';
 
 export type PaymentGateway = 'hesabpay';
 export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
@@ -96,6 +98,37 @@ function writeTx(list: PaymentTransaction[]) {
 
 export function listTransactions(): PaymentTransaction[] {
   return readTx().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+/**
+ * Subscription plans: from the backend (Admin → Plans, PostgreSQL) when
+ * VITE_API_URL is set, otherwise the static defaults below.
+ */
+export function usePlans(): PaymentPlan[] {
+  const [plans, setPlans] = useState<PaymentPlan[]>(PAYMENT_PLANS);
+  useEffect(() => {
+    if (!isBackendEnabled) return;
+    let cancelled = false;
+    fetch(`${API_BASE}/api/public/plans`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { plans?: ApiPlan[] } | null) => {
+        if (!cancelled && d?.plans && d.plans.length > 0) {
+          setPlans(d.plans.map((p) => ({
+            id: p.id,
+            period: p.period,
+            name: { en: p.name.en, fa: p.name.fa },
+            priceUSD: p.priceUSD,
+            originalPriceUSD: p.originalPriceUSD,
+            features: { en: p.features.en ?? [], fa: p.features.fa ?? [] },
+            isPopular: p.isPopular,
+            isBestValue: p.isBestValue,
+          })));
+        }
+      })
+      .catch(() => { /* keep static fallback */ });
+    return () => { cancelled = true; };
+  }, []);
+  return plans;
 }
 
 export function saveTransaction(tx: PaymentTransaction) {

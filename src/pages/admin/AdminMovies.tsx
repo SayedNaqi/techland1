@@ -168,8 +168,8 @@ export default function AdminMovies() {
           <FormField label="Backdrop URL">
             <FormInput value={editing.backdrop || ''} onChange={e => setEditing(p => ({ ...p, backdrop: e.target.value }))} placeholder="https://..." />
           </FormField>
-          <FormField label="Embed URL (ok.ru)">
-            <FormInput value={editing.embedUrl || ''} onChange={e => setEditing(p => ({ ...p, embedUrl: e.target.value }))} placeholder="https://ok.ru/videoembed/..." />
+          <FormField label="Embed URL (bunny.net)" hint="Paste Bunny embed, play link, or full <iframe> snippet — e.g. https://player.mediadelivery.net/embed/777612/…">
+            <FormInput value={editing.embedUrl || ''} onChange={e => setEditing(p => ({ ...p, embedUrl: e.target.value }))} placeholder="https://player.mediadelivery.net/embed/777612/…" />
           </FormField>
           <div className="flex items-center gap-4 pt-2">
             <label className="flex items-center gap-2 cursor-pointer">

@@ -62,6 +62,7 @@ export interface RouteInfo {
     | 'home' | 'scholarships' | 'scholarship-detail' | 'humanitarian'
     | 'humanitarian-detail' | 'visa' | 'eligibility' | 'guides'
     | 'guide-detail' | 'scam-alert' | 'compare' | 'services'
-    | 'contact' | 'admin' | 'payment' | 'not-found';
+    | 'contact' | 'admin' | 'payment' | 'movies' | 'series'
+    | 'video-detail' | 'not-found';
   slug?: string;
 }

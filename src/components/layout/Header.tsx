@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowUpRight, BookOpen, Bookmark, ChevronRight, GraduationCap, HeartHandshake, Home, Info, Mail, Menu, Search, ShieldCheck, Wallet, X } from 'lucide-react';
+import { ArrowUpRight, BookOpen, Bookmark, ChevronRight, Clapperboard, GraduationCap, HeartHandshake, Home, Info, Mail, Menu, Search, ShieldCheck, Tv, Wallet, X } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { Language } from '@/types';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -27,7 +27,9 @@ export default function Header() {
     { label: copy.nav.humanitarian, path: '/humanitarian/', Icon: HeartHandshake },
     { label: copy.nav.visa, path: '/visa/', Icon: ShieldCheck },
     { label: copy.nav.guides, path: '/guides/', Icon: BookOpen },
-    { label: language === 'fa' ? 'عضویت با حساب‌پی' : 'Membership with HesabPay', path: '/payment/', Icon: Wallet },
+    { label: copy.nav.movies, path: '/movies/', Icon: Clapperboard },
+    { label: copy.nav.series, path: '/series/', Icon: Tv },
+    { label: language === 'fa' ? 'عضویت با حساب‌پی' : 'Membership', path: '/payment/', Icon: Wallet },
     { label: copy.nav.contact, path: '/contact/', Icon: Mail },
   ];
 

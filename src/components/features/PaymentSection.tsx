@@ -6,14 +6,16 @@ interface PaymentSectionProps {
   selectedPlanId?: string;
   onSelect?: (plan: PaymentPlan) => void;
   compact?: boolean;
+  plans?: PaymentPlan[];
 }
 
-export default function PaymentSection({ selectedPlanId, onSelect, compact }: PaymentSectionProps) {
+export default function PaymentSection({ selectedPlanId, onSelect, compact, plans }: PaymentSectionProps) {
   const { language } = useLanguage();
+  const list = plans ?? PAYMENT_PLANS;
 
   return (
     <div className="opp-grid" style={compact ? undefined : { gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))' }}>
-      {PAYMENT_PLANS.map((plan) => {
+      {list.map((plan) => {
         const name = plan.name[language];
         const features = plan.features[language];
         const selected = selectedPlanId === plan.id;

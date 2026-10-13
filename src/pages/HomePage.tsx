@@ -21,7 +21,7 @@ export default function HomePage() {
   return <div className="pathway-page pathway-home">
     <section className="pathway-hero" id="home"><div className="pathway-container pathway-hero__grid">
       <div className="pathway-hero__copy"><p className="pathway-eyebrow"><Sparkles size={14} aria-hidden="true" />{copy.home.eyebrow}</p><h1>{copy.home.title}</h1><p className="pathway-hero__description">{copy.home.description}</p><div className="pathway-hero__actions"><Link className="pathway-button" to={localizedPath('/eligibility/', language)}>{copy.home.primary}<ArrowUpRight size={17} aria-hidden="true" /></Link><Link className="pathway-button pathway-button--secondary" to={localizedPath('/scholarships/', language)}>{copy.home.secondary}</Link></div><p className="pathway-hero__note"><ShieldCheck size={16} aria-hidden="true" />{copy.common.noGuarantee}</p></div>
-      <div className="pathway-hero__visual"><img src="public\assets\techland-hero-v1.png" width="1080" height="810" alt={copy.home.visualAlt} loading="eager" /><span className="pathway-hero__visual-label">{copy.common.demoData}</span></div>
+      <div className="pathway-hero__visual"><img src="/assets/techland-hero-v1.png" width="1080" height="810" alt={copy.home.visualAlt} loading="eager" /><span className="pathway-hero__visual-label">{copy.common.demoData}</span></div>
       <div className="pathway-hero__search" id="search"><div><p className="pathway-eyebrow">{copy.home.searchTitle}</p><p>{copy.home.searchDescription}</p></div><QuickSearchForm /></div>
     </div></section>
 

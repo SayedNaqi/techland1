@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: techland
+      POSTGRES_PASSWORD: techland_dev_password
+      POSTGRES_DB: techland
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U techland -d techland"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://techland:techland_dev_password@postgres:5432/techland
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me-to-48-random-hex-chars-0123456789abcdef}
+      JWT_ADMIN_TTL: 12h
+      JWT_USER_TTL: 7d
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      PORT: 4000
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}
+      MEDIA_DIR: /app/media
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-500}
+    ports:
+      - "4000:4000"
+    volumes:
+      - mediafiles:/app/media
+    command: sh -c "node scripts/migrate.js && node src/index.js"
+
+volumes:
+  pgdata:
+  mediafiles:

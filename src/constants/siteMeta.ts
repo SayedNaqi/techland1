@@ -29,6 +29,9 @@ export function getSiteMetadata(pathname: string, language: Language): SiteMetad
     contact: { title: `${copy.nav.contact} | ${suffix}`, description: language === 'fa' ? 'اطلاعات تماس تک‌لند. فرم پیش‌نمایش به سرور وصل نیست.' : 'Contact TechLand. The preview inquiry form is not connected to a server.', keywords: 'TechLand contact, web services, technology support' },
     admin: { title: `${language === 'fa' ? 'پنل مدیریت' : 'Admin Panel'} | ${suffix}`, description: language === 'fa' ? 'مدیریت بورسیه‌ها، مسیرها، راهنماها، پرداخت‌ها و تنظیمات.' : 'Manage scholarships, pathways, guides, payments and settings.', keywords: 'TechLand admin, content management, payments' },
     payment: { title: `${language === 'fa' ? 'پرداخت و اشتراک' : 'Payment & Subscription'} | ${suffix}`, description: language === 'fa' ? 'خرید اشتراک با حساب‌پی (HesabPay).' : 'Purchase a subscription with HesabPay.', keywords: 'TechLand subscription, HesabPay payment' },
+    movies: { title: `${language === 'fa' ? 'فیلم‌ها' : 'Movies'} | ${suffix}`, description: language === 'fa' ? 'تماشای فیلم‌ها با پخش‌کن تک‌لند.' : 'Watch movies with the TechLand player.', keywords: 'TechLand movies, watch films online' },
+    series: { title: `${language === 'fa' ? 'سریال‌ها' : 'TV Series'} | ${suffix}`, description: language === 'fa' ? 'تماشای سریال‌ها با پخش‌کن تک‌لند.' : 'Watch series with the TechLand player.', keywords: 'TechLand series, watch shows online' },
+    'video-detail': { title: `${language === 'fa' ? 'تماشا' : 'Watch'} | ${suffix}`, description: language === 'fa' ? 'تماشای ویدیو با پخش‌کن تک‌لند.' : 'Watch video with the TechLand player.', keywords: 'TechLand watch, online player' },
     'not-found': { title: `${copy.common.notFound} | ${suffix}`, description: copy.common.notFound, keywords: 'TechLand' },
   };
   return metadata[route.page];

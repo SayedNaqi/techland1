@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Play, Lock, Crown, ExternalLink, AlertCircle, Maximize2 } from 'lucide-react';
+import { Play, Lock, Crown, ExternalLink, AlertCircle, Maximize2, Clapperboard } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { detectSource, type VideoSource } from '@/lib/videos';
 
 interface VideoPlayerProps {
   embedUrl?: string;
@@ -10,6 +11,31 @@ interface VideoPlayerProps {
   contentId?: string;
   isLocked?: boolean;
   language?: string;
+  /** Detected automatically from the embed URL when omitted. */
+  source?: VideoSource;
+  /** Cover the source platform's corner logos with neutral masks (default true). */
+  hideBrand?: boolean;
+}
+
+/**
+ * Neutral corner masks that cover the OK.ru / VK player logos and badges.
+ * pointer-events-none so all player controls stay clickable. They are rendered
+ * inside the player container, so they also stay visible in our own fullscreen
+ * mode. Note: watermarks burned into the video file itself cannot be covered.
+ * Bunny Stream and custom embeds are our own videos — no masks needed.
+ */
+function BrandMasks({ source }: { source: VideoSource }) {
+  if (source === 'custom' || source === 'bunny') return null;
+  return (
+    <>
+      {/* top-left: OK.ru logo area */}
+      <div aria-hidden="true" className="pointer-events-none absolute left-0 top-0 z-10 h-11 w-32 bg-black" />
+      {/* top-right: share / "open in app" buttons */}
+      <div aria-hidden="true" className="pointer-events-none absolute right-0 top-0 z-10 h-11 w-28 bg-black" />
+      {/* bottom-right: VK watermark / quality badges */}
+      <div aria-hidden="true" className="pointer-events-none absolute bottom-0 right-0 z-10 h-12 w-40 bg-black" />
+    </>
+  );
 }
 
 export default function VideoPlayer({
@@ -19,12 +45,19 @@ export default function VideoPlayer({
   contentId,
   isLocked = false,
   language = 'en',
+  source,
+  hideBrand = true,
 }: VideoPlayerProps) {
   const [playing, setPlaying] = useState(false);
   const [error, setError] = useState(false);
 
   const defaultEmbed = 'https://ok.ru/videoembed/';
   const src = embedUrl || defaultEmbed;
+  const platform: VideoSource = source ?? detectSource(src);
+  // Bunny Stream is our own video: allow its fullscreen / PiP features.
+  // OK/VK keep the restricted policy so the platform's own fullscreen button
+  // can't escape our brand masks.
+  const isOwnVideo = platform === 'bunny' || platform === 'custom';
 
   if (isLocked) {
     return (
@@ -51,16 +84,26 @@ export default function VideoPlayer({
 
   if (playing && !error) {
     return (
-      <div className="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl shadow-black/50">
+      <div
+        className="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl shadow-black/50"
+      >
         <iframe
           src={src}
           className="absolute inset-0 w-full h-full"
-          allowFullScreen
-          allow="autoplay; fullscreen"
+          // Bunny/custom (own videos): full player features allowed.
+          // OK/VK: no allowFullScreen on purpose — the platform's own fullscreen
+          // button would escape our brand masks.
+          {...(isOwnVideo
+            ? {
+                allowFullScreen: true,
+                allow: 'accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;',
+              }
+            : { allow: 'autoplay' })}
           frameBorder="0"
           title={title}
           onError={() => setError(true)}
         />
+        {hideBrand && <BrandMasks source={platform} />}
       </div>
     );
   }
@@ -92,7 +135,7 @@ export default function VideoPlayer({
             className="flex items-center gap-1.5 px-4 py-2 glass border border-white/20 text-white text-xs font-medium rounded-xl hover:bg-white/10 transition-all"
             onClick={e => e.stopPropagation()}
           >
-            <ExternalLink className="w-3.5 h-3.5" /> Open on OK.ru
+            <ExternalLink className="w-3.5 h-3.5" /> {language === 'fa' ? 'باز کردن ویدیو' : 'Open video'}
           </a>
         </div>
       ) : (
@@ -120,12 +163,10 @@ export default function VideoPlayer({
             </Link>
           )}
 
-          {/* OK.ru badge */}
+          {/* Neutral player badge (no platform branding) */}
           <div className="absolute bottom-4 right-4 flex items-center gap-1.5 px-2.5 py-1 bg-black/60 backdrop-blur-sm rounded-lg border border-white/10">
-            <div className="w-3.5 h-3.5 rounded-full bg-[#EE8208] flex items-center justify-center text-[8px] font-bold text-white">
-              OK
-            </div>
-            <span className="text-[10px] text-white/70 font-medium">OK.ru Player</span>
+            <Clapperboard className="w-3.5 h-3.5 text-white/80" />
+            <span className="text-[10px] text-white/70 font-medium">TechLand</span>
           </div>
 
           <div className="absolute bottom-4 left-4">
