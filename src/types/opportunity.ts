@@ -60,7 +60,7 @@ export interface RouteInfo {
   basePath: string;
   page:
     | 'home' | 'scholarships' | 'scholarship-detail' | 'humanitarian'
-    | 'humanitarian-detail' | 'visa' | 'eligibility' | 'guides'
+    | 'humanitarian-detail' | 'visa' | 'eligibility'
     | 'guide-detail' | 'scam-alert' | 'compare' | 'services'
     | 'contact' | 'admin' | 'payment' | 'movies' | 'series'
     | 'video-detail' | 'games' | 'not-found';

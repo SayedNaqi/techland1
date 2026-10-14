@@ -200,12 +200,16 @@ export default function PaymentPage() {
           <PaymentSection selectedPlanId={plan.id} onSelect={setPlan} plans={plans} />
 
           {/* Step 3 — HesabPay QR */}
-          <div className="pathway-split" style={{ marginTop: 28, alignItems: 'start' }}>
-            <div className="quick-match-form">
-              <h2>{language === 'fa' ? '۳ — پرداخت با حساب‌پی' : '3 — Pay with HesabPay'}</h2>
-              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          <div className="payment-grid" style={{ marginTop: 28 }}>
+            <div className="pay-card">
+              <div className="pay-card__head">
+                <span className="pay-step-badge" aria-hidden="true">3</span>
+                <h2>{language === 'fa' ? 'پرداخت با حساب‌پی' : 'Pay with HesabPay'}</h2>
+                <span className="pay-plan-pill">{plan.name[language]} · ${plan.priceUSD.toFixed(2)}</span>
+              </div>
+              <div className="pay-qr-layout">
                 {qrMissing ? (
-                  <div style={{ width: 210, maxWidth: '100%', minHeight: 210, border: '2px dashed #b3261e', borderRadius: 16, background: '#fff5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 14, textAlign: 'center', fontSize: 12, color: '#7a1f1a' }}>
+                  <div className="pay-qr pay-qr--missing">
                     {language === 'fa'
                       ? 'QR حساب‌پی هنوز تنظیم نشده است. مدیر باید از پنل ادمین → تنظیمات، تصویر QR را آپلود کند.'
                       : 'HesabPay QR is not configured yet. The admin must upload the QR image via Admin → Settings.'}
@@ -214,19 +218,15 @@ export default function PaymentPage() {
                   <img
                     src={qrSrc}
                     alt="HesabPay QR"
-                    style={{ width: 210, maxWidth: '100%', height: 'auto', aspectRatio: '1 / 1', objectFit: 'contain', border: '1px solid #dfe6ef', borderRadius: 16, background: '#fff' }}
+                    className="pay-qr"
                     onError={() => setQrMissing(true)}
                   />
                 )}
-                <div style={{ flex: '1 1 200px', display: 'grid', gap: 8, fontSize: 13, color: '#35445d' }}>
-                  <p style={{ margin: 0 }}>
+                <div className="pay-summary">
+                  <p className="pay-account">
                     <strong>{settings.hesabpayAccountLabel || 'HesabPay'}</strong>
-                    <br />
-                    {language === 'fa' ? 'پلن: ' : 'Plan: '}<strong>{plan.name[language]}</strong>
-                    {' · '}
-                    {language === 'fa' ? 'مبلغ: ' : 'Amount: '}<strong>${plan.priceUSD.toFixed(2)}</strong>
                   </p>
-                  <ol style={{ margin: 0, paddingInlineStart: 18, display: 'grid', gap: 4, fontSize: 12 }}>
+                  <ol className="pay-steps">
                     <li>{language === 'fa' ? 'اپ حساب‌پی را باز کنید و QR را اسکن کنید.' : 'Open the HesabPay app and scan the QR.'}</li>
                     <li>{language === 'fa' ? `مبلغ $${plan.priceUSD.toFixed(2)} را پرداخت کنید.` : `Pay $${plan.priceUSD.toFixed(2)}.`}</li>
                     <li>{language === 'fa' ? 'شمارهٔ مرجع / رسید را در کادر زیر وارد و ثبت کنید.' : 'Enter the reference / receipt number below and submit.'}</li>
@@ -237,29 +237,29 @@ export default function PaymentPage() {
               <div className="pathway-field">
                 <label>
                   {language === 'fa' ? 'شمارهٔ مرجع حساب‌پی' : 'HesabPay reference number'}
-                  <input value={reference} onChange={(e) => setReference(e.target.value)} placeholder={language === 'fa' ? 'مثلاً HP-123456' : 'e.g. HP-123456'} dir="ltr" />
+                  <input value={reference} onChange={(e) => setReference(e.target.value)} placeholder={language === 'fa' ? 'مثلاً HP-123456' : 'e.g. HP-123456'} dir="ltr" autoComplete="off" inputMode="text" />
                 </label>
               </div>
-              {error && <p style={{ color: '#b3261e', fontSize: 12, margin: 0 }}>{error}</p>}
+              {error && <p className="pay-notice pay-notice--error">{error}</p>}
               {doneTx && (
-                <p style={{ color: '#267f79', fontSize: 12, margin: 0 }}>
+                <p className="pay-notice pay-notice--success">
                   {language === 'fa'
-                    ? `✓ پرداخت شما ثبت شد (${doneTx}) و در انتظار تأیید مدیر است.`
-                    : `✓ Your payment was recorded (${doneTx}) and is pending admin approval.`}
+                    ? `✓ پرداخت شما ثبت شد و در انتظار تأیید مدیر است.`
+                    : `✓ Your payment was recorded and is pending admin approval.`}
                 </p>
               )}
-              <button type="button" className="pathway-button" onClick={submitPayment} disabled={busy || !activeUser}>
+              <button type="button" className="pathway-button pay-submit" onClick={submitPayment} disabled={busy || !activeUser}>
                 {busy ? (language === 'fa' ? 'در حال ثبت…' : 'Submitting…') : language === 'fa' ? 'ثبت پرداخت' : 'Submit payment'}
               </button>
               {!activeUser && (
-                <p className="pathway-fineprint">
+                <p className="pay-notice pay-notice--info">
                   {language === 'fa' ? 'برای ثبت پرداخت اول وارد پروفایل شوید.' : 'Sign in to your profile before submitting a payment.'}
                 </p>
               )}
             </div>
 
-            <div>
-              <h3 style={{ color: '#07114f', marginTop: 0 }}>{language === 'fa' ? 'پرداخت‌های من' : 'My payments'}</h3>
+            <div className="pay-history">
+              <h3>{language === 'fa' ? 'پرداخت‌های من' : 'My payments'}</h3>
               <div className="compare-table-wrap my-payments-table">
                 <table className="compare-table">
                   <thead><tr><th>{language === 'fa' ? 'پلن' : 'Plan'}</th><th>{language === 'fa' ? 'مرجع' : 'Reference'}</th><th>{language === 'fa' ? 'مبلغ' : 'Amount'}</th><th>{language === 'fa' ? 'وضعیت' : 'Status'}</th></tr></thead>
@@ -269,7 +269,7 @@ export default function PaymentPage() {
                         <td>{t.planId}</td>
                         <td><code style={{ fontSize: 11 }}>{'reference' in t ? (t.reference ?? '—') : '—'}</code></td>
                         <td>${('amountUSD' in t ? t.amountUSD : 0).toFixed(2)}</td>
-                        <td>{t.status}</td>
+                        <td><span className={`pay-status pay-status--${t.status}`}>{t.status}</span></td>
                       </tr>
                     ))}
                     {myHistory.length === 0 && (

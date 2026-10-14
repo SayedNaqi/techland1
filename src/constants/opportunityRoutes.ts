@@ -12,7 +12,6 @@ export const PUBLIC_BASE_ROUTES = [
   '/humanitarian/demo-humanitarian-community/',
   '/visa/',
   '/eligibility/',
-  '/guides/',
   '/guides/avoid-scholarship-scams/',
   '/guides/verify-official-sources/',
   '/guides/prepare-application-documents/',
@@ -74,7 +73,6 @@ export function resolveRoute(pathname: string): RouteInfo {
   }
   if (basePath === '/visa/') return { language, basePath, page: 'visa' };
   if (basePath === '/eligibility/') return { language, basePath, page: 'eligibility' };
-  if (basePath === '/guides/') return { language, basePath, page: 'guides' };
   if (/^\/guides\/[^/]+\/$/.test(basePath)) {
     const slug = basePath.split('/').filter(Boolean)[1];
     return { language, basePath, page: 'guide-detail', slug };

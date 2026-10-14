@@ -5,7 +5,6 @@ import OpportunityDetailPage from '@/components/opportunities/OpportunityDetailP
 import ComparePage from '@/pages/ComparePage';
 import EligibilityPage from '@/pages/EligibilityPage';
 import GuideDetailPage from '@/pages/GuideDetailPage';
-import GuidesPage from '@/pages/GuidesPage';
 import HomePage from '@/pages/HomePage';
 import ScamAlertPage from '@/pages/ScamAlertPage';
 import ServicesPage from '@/pages/ServicesPage';
@@ -35,7 +34,6 @@ export default function PageView({ route }: { route: RouteInfo }) {
     }
     case 'visa': return <VisaPage />;
     case 'eligibility': return <EligibilityPage />;
-    case 'guides': return <GuidesPage />;
     case 'guide-detail': return <GuideDetailPage slug={route.slug} />;
     case 'scam-alert': return <ScamAlertPage />;
     case 'compare': return <ComparePage />;

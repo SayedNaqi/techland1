@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowUpRight, BookOpen, Bookmark, ChevronRight, Clapperboard, Gamepad2, GraduationCap, HeartHandshake, Home, Info, Mail, Menu, Search, ShieldCheck, Tv, Wallet, X } from 'lucide-react';
+import { ArrowUpRight, Bookmark, ChevronRight, Clapperboard, Gamepad2, GraduationCap, HeartHandshake, Home, Info, Mail, Menu, Search, ShieldCheck, Tv, Wallet, X } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { Language } from '@/types';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -26,7 +26,7 @@ export default function Header() {
     { label: copy.nav.scholarships, path: '/scholarships/', Icon: GraduationCap },
     { label: copy.nav.humanitarian, path: '/humanitarian/', Icon: HeartHandshake },
     { label: copy.nav.visa, path: '/visa/', Icon: ShieldCheck },
-    { label: copy.nav.guides, path: '/guides/', Icon: BookOpen },
+
     { label: copy.nav.movies, path: '/movies/', Icon: Clapperboard },
     { label: copy.nav.series, path: '/series/', Icon: Tv },
     { label: copy.nav.games, path: '/games/', Icon: Gamepad2 },

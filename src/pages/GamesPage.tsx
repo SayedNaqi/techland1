@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Gamepad2, Star } from 'lucide-react';
+import { Gamepad2 } from 'lucide-react';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useGames } from '@/lib/games';
 
@@ -33,8 +33,8 @@ export default function GamesPage() {
           <p>
             {backend
               ? language === 'fa'
-                ? 'فهرست واقعی بازی‌ها — موارد جدید با نشان «جدید» مشخص می‌شوند.'
-                : 'Real game catalog — new arrivals are marked NEW.'
+                ? 'تازه‌ترین بازی‌ها با پوستر — موارد جدید با نشان «جدید» مشخص می‌شوند.'
+                : 'Latest games with posters — new arrivals are marked NEW.'
               : language === 'fa'
                 ? 'نمونه‌های نمایشی؛ با اتصال بک‌اند، بازی‌هایی که ادمین اضافه می‌کند نمایش داده می‌شود.'
                 : 'Demo samples; with the backend connected, admin-added games appear here.'}
@@ -68,12 +68,13 @@ export default function GamesPage() {
           </div>
 
           {filtered.length > 0 ? (
-            <div className="opp-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>
+            <div className="opp-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
               {filtered.map((g) => {
                 const title = g.title[language] || g.title.en;
+                const tags = [...g.genre.slice(0, 2), ...g.platform.slice(0, 2)].slice(0, 3);
                 return (
                   <article key={g.slug} className="opp-card" style={{ overflow: 'hidden', padding: 0 }}>
-                    <div style={{ position: 'relative', aspectRatio: '16/10', background: '#0b1230' }}>
+                    <div style={{ position: 'relative', aspectRatio: '4/3', background: '#0b1230' }}>
                       {g.thumbnailUrl ? (
                         <img src={g.thumbnailUrl} alt={title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
@@ -82,23 +83,16 @@ export default function GamesPage() {
                         </div>
                       )}
                       {g.isNew && <span style={{ position: 'absolute', top: 8, insetInlineStart: 8, fontSize: 10, fontWeight: 800, background: '#16a34a', color: '#fff', borderRadius: 6, padding: '2px 6px' }}>{language === 'fa' ? 'جدید' : 'NEW'}</span>}
-                      <span style={{ position: 'absolute', bottom: 8, insetInlineEnd: 8, fontSize: 10, fontWeight: 700, background: g.accessType === 'free' ? 'rgba(22,163,74,.9)' : g.accessType === 'vip' ? 'rgba(139,92,246,.9)' : 'rgba(40,89,168,.9)', color: '#fff', borderRadius: 6, padding: '2px 6px' }}>
-                        {g.accessType === 'free'
-                          ? (language === 'fa' ? 'رایگان' : 'Free')
-                          : g.price != null
-                            ? `$${g.price.toFixed(2)}`
-                            : g.accessType.toUpperCase()}
-                      </span>
                     </div>
                     <div style={{ padding: '10px 12px' }}>
                       <p style={{ margin: 0, fontWeight: 700, color: '#07114f', fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</p>
-                      <p style={{ margin: '4px 0 0', fontSize: 12, color: '#65718a', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        {g.platform.slice(0, 3).map((p) => (
-                          <span key={p} style={{ fontSize: 10, background: '#eef2f8', color: '#41506b', borderRadius: 6, padding: '1px 6px' }}>{p}</span>
-                        ))}
-                        {g.rating != null && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#b8860b' }}><Star size={12} fill="currentColor" />{g.rating}</span>}
-                      </p>
-                      {g.size && <p style={{ margin: '4px 0 0', fontSize: 11, color: '#9aa6b7' }}>{g.size}</p>}
+                      {tags.length > 0 && (
+                        <p style={{ margin: '6px 0 0', display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                          {tags.map((tag) => (
+                            <span key={tag} style={{ fontSize: 10, background: '#eef2f8', color: '#41506b', borderRadius: 6, padding: '1px 6px' }}>{tag}</span>
+                          ))}
+                        </p>
+                      )}
                     </div>
                   </article>
                 );

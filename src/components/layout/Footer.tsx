@@ -14,7 +14,7 @@ export default function Footer() {
   const [legalDoc, setLegalDoc] = useState<LegalDoc | null>(null);
   const explore = [
     [copy.nav.scholarships, '/scholarships/'], [copy.nav.humanitarian, '/humanitarian/'],
-    [copy.nav.visa, '/visa/'], [copy.nav.guides, '/guides/'], [copy.nav.search, '/#search'],
+    [copy.nav.visa, '/visa/'], [copy.nav.games, '/games/'], [copy.nav.search, '/#search'],
   ];
   const serviceLinks = [
     [copy.footer.about, '/services/#about'],
