@@ -26,7 +26,13 @@ export function gameRowToApi(r) {
   };
 }
 
-/** Poster / screenshot URL: https image file or a /media/... upload path. */
+/**
+ * Poster / screenshot URL: /media/... upload path or any http(s) image URL.
+ * Deliberately lenient about file extensions: many real image services
+ * (google thumbnails, dynamic CDNs) serve images from extensionless URLs.
+ * Mistakes are still visible — the admin form renders a live preview with a
+ * red outline when the image fails to load.
+ */
 export function normalizeImageUrl(input) {
   if (!input || typeof input !== 'string') return '';
   const clean = input.trim();
@@ -39,6 +45,5 @@ export function normalizeImageUrl(input) {
     return null;
   }
   if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
-  if (!/\.(jpg|jpeg|png|webp|gif|avif|svg)(\?|#|$)/i.test(url.pathname)) return null;
   return url.toString();
 }

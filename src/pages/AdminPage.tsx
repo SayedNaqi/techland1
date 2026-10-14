@@ -238,6 +238,21 @@ function isUnauthorized(e: unknown): boolean {
   return (e as { status?: number })?.status === 401;
 }
 
+/** Network failure (backend down/unreachable) shows a clear message instead of "Failed to fetch". */
+function friendlySaveError(e: unknown, language: 'en' | 'fa'): string {
+  if (isUnauthorized(e)) {
+    return language === 'fa'
+      ? 'نشست ادمین منقضی شده — از بالای صفحه خارج شوید و دوباره وارد شوید.'
+      : 'Admin session expired — sign out (top of the page) and sign in again.';
+  }
+  if (e instanceof TypeError) {
+    return language === 'fa'
+      ? 'سرور در دسترس نیست — اتصال اینترنت و روشن بودن بک‌اند را بررسی کنید.'
+      : 'Server unreachable — check your connection and that the backend is running.';
+  }
+  return e instanceof Error ? e.message : 'save_failed';
+}
+
 function AdminApp({ language, onLogout }: { language: 'en' | 'fa'; onLogout: () => void }) {
   const [section, setSection] = useState<SectionKey>('dashboard');
   const opp = useOpportunitiesAdmin();
@@ -1455,11 +1470,7 @@ function VideosView({ onChanged }: { onChanged: () => void }) {
       setModalOpen(false);
       await refresh();
     } catch (e) {
-      setError(isUnauthorized(e)
-        ? (language === 'fa'
-          ? 'نشست ادمین منقضی شده — از بالای صفحه خارج شوید و دوباره وارد شوید.'
-          : 'Admin session expired — sign out (top of the page) and sign in again.')
-        : (e instanceof Error ? e.message : 'save_failed'));
+      setError(friendlySaveError(e, language));
     } finally {
       setBusy(false);
     }
@@ -1780,9 +1791,7 @@ function GamesView({ onChanged }: { onChanged: () => void }) {
       const r = await apiUploadImage(f);
       setForm((prev) => ({ ...prev, thumbnail: r.url }));
     } catch (e) {
-      setError(isUnauthorized(e)
-        ? (language === 'fa' ? 'نشست ادمین منقضی شده — خارج شوید و دوباره وارد شوید.' : 'Admin session expired — sign out and sign in again.')
-        : (e instanceof Error ? e.message : 'upload_failed'));
+      setError(friendlySaveError(e, language));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -1872,9 +1881,7 @@ function GamesView({ onChanged }: { onChanged: () => void }) {
       setModalOpen(false);
       await refresh();
     } catch (e) {
-      setError(isUnauthorized(e)
-        ? (language === 'fa' ? 'نشست ادمین منقضی شده — خارج شوید و دوباره وارد شوید.' : 'Admin session expired — sign out and sign in again.')
-        : (e instanceof Error ? e.message : 'save_failed'));
+      setError(friendlySaveError(e, language));
     } finally {
       setBusy(false);
     }
